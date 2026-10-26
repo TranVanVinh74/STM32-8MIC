@@ -153,7 +153,6 @@ static volatile uint16_t * const buffers[4] = {
 
 void INMP441_8Mic_Init(void)
 {
-    uint32_t t;
     audio_faults = 0;
     for (unsigned i = 0; i < 4; ++i) completed[i] = 0;
     I2S_PLLI2S_Init();
@@ -176,14 +175,10 @@ void INMP441_8Mic_Init(void)
     GPIOB->MODER = (GPIOB->MODER & ~((3U << 24) | (3U << 26)))
                     | (1U << 24) | (1U << 26);
     Delay_ms(1);
-    t = millis();
-    while (!(GPIOA->IDR & (1U << 4)) || !(GPIOA->IDR & (1U << 15))
-           || !(GPIOB->IDR & (1U << 1))) {
-        if ((uint32_t)(millis() - t) >= 10U) {
-            audio_faults |= 1U << 10;
-            return;
-        }
-    }
+    /* Shared clock wiring is supplied externally. Do not gate startup on
+     * a static GPIO IDR check: validate acquisition through DMA progress
+     * and I2S error checks instead. This does not verify phase alignment.
+     */
     /* Clear only flags belonging to our four streams. */
     DMA1->LIFCR = 0x0F400000U | 0x0000003DU;
     DMA2->LIFCR = 0x003D0000U | 0x0F400000U;
